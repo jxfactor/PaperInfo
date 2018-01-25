@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
 import httplib
-import requests
 import urllib2
 import os
 import time
@@ -26,10 +25,6 @@ class TheSpider:
     def get_html_doc(self, s_url):
         req = urllib2.Request(s_url, headers=self.headers)
         return urllib2.urlopen(req).read()
-
-    # def get_html_doc(self, s_url):
-    #     r = requests.get(s_url, headers=self.headers)
-    #     return r.text
 
     def find_paper_list(self, s_url, s_year):
         paper_urls = []
