@@ -6,6 +6,7 @@ import os
 import time
 import re
 from bs4 import BeautifulSoup
+from pymongo import MongoClient
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
@@ -21,12 +22,20 @@ class TheSpider:
         #                   'Safari/537.36'
         self.user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
         self.headers = {'User-Agent': self.user_agent}
+        self.conn = MongoClient('localhost', 27017)
+
+    def get_post_set(self):
+        db = self.conn.paper_info
+        return db.post_set
+
+    def close_db_conn(self):
+        self.conn.close()
 
     def get_html_doc(self, s_url):
         req = urllib2.Request(s_url, headers=self.headers)
         return urllib2.urlopen(req).read()
 
-    def find_paper_list(self, s_url, s_year):
+    def find_paper_list(self, s_url, s_year, s_conf):
         paper_urls = []
         counts = 0
 
@@ -40,8 +49,8 @@ class TheSpider:
             counts = counts + 1
             while True:
                 print "No.{id}    {year}".format(id=counts, year=s_year)
-                isOk = self.execute_paper_url(paper_url)
-                if isOk:
+                is_Ok = self.execute_paper_url(paper_url, s_year, s_conf)
+                if is_Ok:
                     break
                 else:
                     print 'error happen!'
@@ -50,7 +59,7 @@ class TheSpider:
 
         return counts, s_year
 
-    def execute_paper_url(self, s_url):
+    def execute_paper_url(self, s_url, s_year, s_conf):
         try:
             print s_url
             soup = BeautifulSoup(self.get_html_doc(s_url), "lxml")
@@ -58,6 +67,8 @@ class TheSpider:
             if len(soup_paper_title) == 0:
                 print 'access denied'
             else:
+                author_list = []
+                institution_list = []
                 print soup_paper_title[0].attrs['content']
                 print '\n'
                 soup_table = soup.find_all("table", class_="medium-text")
@@ -65,10 +76,38 @@ class TheSpider:
                 soup_institution = soup_table[0].find_all("a", attrs={"title": "Institutional Profile Page"})
                 for j in range(0, len(soup_author), 1):
                     print soup_author[j].text
+                    author_list.append(soup_author[j].text)
                     if len(soup_institution) > j:
                         print soup_institution[j].text
+                        institution_list.append(soup_institution[j].text)
+                    else:
+                        institution_list.append("Nothing")
                     print '\n'
                 print '\n'
+
+                co_author_dict = {}
+                for j in range(1, len(soup_author), 1):
+                    author_key = "co_author_{id}".format(id=j)
+                    co_author_dict[author_key] = {"author": author_list[j],
+                                                  "institution": institution_list[j]}
+                    # institution_key = "institution_{id}".format(id=j)
+                    # co_author_dict[institution_key] = institution_list[j]
+
+                paper_record = {"title": soup_paper_title[0].attrs['content'],
+                                "url": s_url,
+                                "year": s_year,
+                                "conference": s_conf,
+                                "first_author": {
+                                    "author": author_list[0],
+                                    "institution": institution_list[0]},
+                                "co_author": co_author_dict}
+                print paper_record
+                print "connect"
+                post_set = self.get_post_set()
+                post_set.insert(paper_record)
+
+                print paper_record
+
             return True
         except Exception as e:
             print e
@@ -80,7 +119,7 @@ urls = ['http://dblp.uni-trier.de/db/conf/mhci/mhci{}.html'.format(str(y)) for y
 counts = 0
 year_paper = {}
 for url in urls:
-    paper_counts, paper_year = mySpider.find_paper_list(url, years[counts])
+    paper_counts, paper_year = mySpider.find_paper_list(url, years[counts], "MobileHCI")
     year_paper[str(paper_year)] = paper_counts
     counts = counts + 1
 
