@@ -49,7 +49,7 @@ class TheSpider:
             counts = counts + 1
             while True:
                 print "No.{id}    {year}".format(id=counts, year=s_year)
-                is_Ok = self.execute_paper_url(paper_url, s_year, s_conf)
+                is_Ok = self.execute_paper_url(paper_url, s_year, s_conf, counts)
                 if is_Ok:
                     break
                 else:
@@ -59,7 +59,7 @@ class TheSpider:
 
         return counts, s_year
 
-    def execute_paper_url(self, s_url, s_year, s_conf):
+    def execute_paper_url(self, s_url, s_year, s_conf, s_counts):
         try:
             print s_url
             soup = BeautifulSoup(self.get_html_doc(s_url), "lxml")
@@ -90,8 +90,6 @@ class TheSpider:
                     author_key = "co_author_{id}".format(id=j)
                     co_author_dict[author_key] = {"author": author_list[j],
                                                   "institution": institution_list[j]}
-                    # institution_key = "institution_{id}".format(id=j)
-                    # co_author_dict[institution_key] = institution_list[j]
 
                 paper_record = {"title": soup_paper_title[0].attrs['content'],
                                 "url": s_url,
@@ -100,7 +98,8 @@ class TheSpider:
                                 "first_author": {
                                     "author": author_list[0],
                                     "institution": institution_list[0]},
-                                "co_author": co_author_dict}
+                                "co_author": co_author_dict,
+                                "no": s_counts}
                 print paper_record
                 print "connect"
                 post_set = self.get_post_set()
@@ -113,16 +112,29 @@ class TheSpider:
             print e
             return False
 
-mySpider = TheSpider()
-years = range(2006, 2018, 1)
-urls = ['http://dblp.uni-trier.de/db/conf/mhci/mhci{}.html'.format(str(y)) for y in years]
-counts = 0
-year_paper = {}
-for url in urls:
-    paper_counts, paper_year = mySpider.find_paper_list(url, years[counts], "MobileHCI")
-    year_paper[str(paper_year)] = paper_counts
-    counts = counts + 1
+    def find_acm_conference_paper(self, s_urls_str, s_conf_name, s_begin_year):
+        years = range(s_begin_year, 2018, 1)
+        urls = [s_urls_str.format(str(y)) for y in years]
+        counts = 0
+        year_paper = {}
+        for url in urls:
+            paper_counts, paper_year = self.find_paper_list(url, years[counts], s_conf_name)
+            year_paper[str(paper_year)] = paper_counts
+            counts = counts + 1
 
-print year_paper
+        print year_paper
+
+    def conference_list(self):
+        # CHI
+        self.find_acm_conference_paper('http://dblp.uni-trier.de/db/conf/chi/chi{}.html',   "CHI",  1989)
+        # UIST
+        self.find_acm_conference_paper('http://dblp.uni-trier.de/db/conf/uist/uist{}.html', "UIST", 1988)
+        # IUI
+        self.find_acm_conference_paper('http://dblp.uni-trier.de/db/conf/iui/iui{}.html',   "IUI",  1993)
+        # MobileHCI
+        self.find_acm_conference_paper('http://dblp.uni-trier.de/db/conf/mhci/mhci{}.html', "MobileHCI", 2006)
+
+mySpider = TheSpider()
+mySpider.conference_list()
 
 print "end"
