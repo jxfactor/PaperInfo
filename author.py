@@ -27,7 +27,7 @@ def print_process_time():
         print_str += "{}m ".format(s_minute)
     if s_second != 0:
         print_str += "{}s".format(s_second)
-    print "cost time: " + print_str + "\n"
+    print "already cost time: " + print_str + "\n"
 
 
 class TheSpider:
@@ -64,7 +64,7 @@ class TheSpider:
         for paper_url in paper_urls:
             counts = counts + 1
             while True:
-                print "No.{id}    {year}".format(id=counts, year=s_year)
+                print "No.{id}    {conf}    {year}".format(id=counts, conf=s_conf, year=s_year)
                 is_Ok = self.execute_paper_url(paper_url, s_year, s_conf, counts)
                 if is_Ok:
                     break
