@@ -48,33 +48,12 @@ class TheSpider:
         self.conn.close()
 
     def get_html_doc(self, s_url):
-        req = urllib2.Request(s_url, headers=self.headers)
-        return urllib2.urlopen(req).read()
-
-    def find_paper_list(self, s_url, s_year, s_conf):
-        paper_urls = []
-        counts = 0
-
-        soup = BeautifulSoup(self.get_html_doc(s_url), "lxml")
-        soup_li = soup.find_all("li", class_="entry inproceedings")
-        for li_row in soup_li:
-            soup_text = li_row.find_all("a", attrs={"itemprop": "url"})
-            paper_urls.append(soup_text[0].attrs['href'])
-
-        for paper_url in paper_urls:
-            counts = counts + 1
-            while True:
-                print "No.{id}    {conf}    {year}".format(id=counts, conf=s_conf, year=s_year)
-                is_Ok = self.execute_paper_url(paper_url, s_year, s_conf, counts)
-                if is_Ok:
-                    break
-                else:
-                    print 'error happen!'
-                    print 'wait 10 seconds \n'
-                    time.sleep(10)
-
-            print_process_time()
-        return counts, s_year
+        try:
+            req = urllib2.Request(s_url, headers=self.headers)
+            return urllib2.urlopen(req).read()
+        except Exception as e:
+            print e
+            return False
 
     def execute_paper_url(self, s_url, s_year, s_conf, s_counts):
         try:
@@ -121,6 +100,34 @@ class TheSpider:
         except Exception as e:
             print e
             return False
+
+    def find_paper_list(self, s_url, s_year, s_conf):
+        print "\n" + s_url + "\n"
+        paper_urls = []
+        counts = 0
+        html_doc = self.get_html_doc(s_url)
+
+        if html_doc:
+            soup = BeautifulSoup(html_doc, "lxml")
+            soup_li = soup.find_all("li", class_="entry inproceedings")
+            for li_row in soup_li:
+                soup_text = li_row.find_all("a", attrs={"itemprop": "url"})
+                paper_urls.append(soup_text[0].attrs['href'])
+
+            for paper_url in paper_urls:
+                counts = counts + 1
+                while True:
+                    print "No.{id}    {conf}    {year}".format(id=counts, conf=s_conf, year=s_year)
+                    is_Ok = self.execute_paper_url(paper_url, s_year, s_conf, counts)
+                    if is_Ok:
+                        break
+                    else:
+                        print 'error happen!'
+                        print 'wait 10 seconds \n'
+                        time.sleep(10)
+                print_process_time()
+
+        return counts, s_year
 
     def find_acm_conference_paper(self, s_urls_str, s_conf_name, s_begin_year):
         years = range(s_begin_year, 2018, 1)
