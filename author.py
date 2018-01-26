@@ -14,6 +14,22 @@ httplib.HTTPConnection._http_vsn = 10
 httplib.HTTPConnection._http_vsn_str = 'HTTP/1.0'
 
 
+def print_process_time():
+    cur_time = time.time()
+    process_time = int(cur_time - start_time)
+    s_hour = process_time / (60*60)
+    s_minute = (process_time % (60*60)) / 60
+    s_second = (process_time % (60*60)) % 60
+    print_str = ""
+    if s_hour != 0:
+        print_str += "{}h ".format(s_hour)
+    if s_minute != 0:
+        print_str += "{}m ".format(s_minute)
+    if s_second != 0:
+        print_str += "{}s".format(s_second)
+    print "cost time: " + print_str + "\n"
+
+
 class TheSpider:
     def __init__(self):
         # self.user_agent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) ' \
@@ -57,6 +73,7 @@ class TheSpider:
                     print 'wait 10 seconds \n'
                     time.sleep(10)
 
+            print_process_time()
         return counts, s_year
 
     def execute_paper_url(self, s_url, s_year, s_conf, s_counts):
@@ -83,14 +100,12 @@ class TheSpider:
                     else:
                         institution_list.append("Nothing")
                     print '\n'
-                print '\n'
 
                 co_author_dict = {}
                 for j in range(1, len(soup_author), 1):
                     author_key = "co_author_{id}".format(id=j)
                     co_author_dict[author_key] = {"author": author_list[j],
                                                   "institution": institution_list[j]}
-
                 paper_record = {"title": soup_paper_title[0].attrs['content'],
                                 "url": s_url,
                                 "year": s_year,
@@ -100,13 +115,8 @@ class TheSpider:
                                     "institution": institution_list[0]},
                                 "co_author": co_author_dict,
                                 "no": s_counts}
-                print paper_record
-                print "connect"
                 post_set = self.get_post_set()
                 post_set.insert(paper_record)
-
-                print paper_record
-
             return True
         except Exception as e:
             print e
@@ -134,6 +144,7 @@ class TheSpider:
         # MobileHCI
         self.find_acm_conference_paper('http://dblp.uni-trier.de/db/conf/mhci/mhci{}.html', "MobileHCI", 2006)
 
+start_time = time.time()
 mySpider = TheSpider()
 mySpider.conference_list()
 
